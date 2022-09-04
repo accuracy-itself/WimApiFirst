@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <winnt.h>
 #pragma comment(lib, "Msimg32.lib")
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -16,7 +17,7 @@ void mvPctr(HWND hwnd);
 
 HINSTANCE h;
 CONST INT TRNSPCLR = 0xFF00FF;
-int x = 150, y = 300, dx = 10, dy = 10, ela = 140, elb = 60, col = 80, mdx = 10, sgndx = 1, sgndy = 1;
+int x = 150, y = 300, dx = 10, dy = 10, ela = 140, elb = 60, col = 80, mdx = 10, sgndx = 1, sgndy = 1, kol = 0;
 HBITMAP gBM;
 boolean onPict = false, onMove = false, mvx = false, mvy = false;
 
@@ -152,7 +153,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				InvalidateRect(hwnd, &clientRect, true);
 				mvrght(hwnd);
 				mvdwn(hwnd);
-
 			}
 			else
 			{
@@ -174,6 +174,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if ((abs(GET_X_LPARAM(lParam) - (x + ela / 2)) > 40) || (abs(GET_Y_LPARAM(lParam) - (y + elb / 2)) > 40))
 				break;
 		}
+		kol += 1;
 		rrr = !mvx * mvy;
 		mvx = true;
 
@@ -278,7 +279,23 @@ void paintWind(HWND hwnd)
 	HDC backDc = CreateCompatibleDC(hdc);
 	HGDIOBJ previousBackBmp = SelectObject(backDc, hbmBack);
 	FillRect(backDc, &clientRect, (HBRUSH)(3));
-
+	
+	wchar_t text[] = L"0123456789";
+	int c1, c2, c3;
+	wchar_t tc1[] = L"0\0", tc2[] = L"1\0", tc3[] = L"2\0";
+	c1 = kol % 1000 / 100;
+	c2 = kol % 100 / 10;
+	c3 = kol % 10;
+	tc1[0] = text[c1];
+	tc2[0] = text[c2];
+	tc3[0] = text[c3];
+	SetBkColor(backDc, RGB(0x64, 0x95, 0xED));
+	
+	int k = TextOut(backDc, 0, 0, L"caught: ", ARRAYSIZE(L"caught: "));
+	k = TextOut(backDc, 56, 0, tc1, ARRAYSIZE(tc1));
+	k = TextOut(backDc, 64, 0, tc2, ARRAYSIZE(tc2));
+	k = TextOut(backDc, 72, 0, tc3, ARRAYSIZE(tc3));
+	
 	if (onPict == false)
 	{
 		HBRUSH hBrush;
@@ -290,7 +307,6 @@ void paintWind(HWND hwnd)
 	else
 	{
 		//DWORD error = GetLastError();
-
 		HDC pict = CreateCompatibleDC(hdc);
 		HGDIOBJ previousBmp = SelectObject(pict, gBM);
 
