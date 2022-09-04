@@ -121,7 +121,36 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		mvup(hwnd);
 		return 0;
 
+	case WM_MOUSEWHEEL:
+	{
+		int key = GET_KEYSTATE_WPARAM(wParam);
+		if (key == MK_SHIFT)
+		{
+			mvx = true;
+			mvy = false;
+			if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+				sgndx = -1;
+			else
+				sgndx = 1;
+		}
+		else
+		{
+			mvy = true;
+			mvx = false;
+			if (GET_WHEEL_DELTA_WPARAM(wParam) > 0)
+				sgndy = -1;
+			else
+				sgndy = 1;
+		}
+
+		mvPctr(hwnd);
+		mvx = false;
+		mvy = false;
+		return 0;
+	}
+
 	case WM_KEYDOWN:
+
 		switch (wParam)
 		{
 		case VK_RIGHT:
