@@ -16,8 +16,8 @@ void mvdwn(HWND hwnd);
 void mvPctr(HWND hwnd);
 
 HINSTANCE h;
-CONST INT TRNSPCLR = 0xFF00FF;
-int x = 150, y = 300, dx = 10, dy = 10, ela = 140, elb = 60, col = 80, mdx = 10, sgndx = 1, sgndy = 1, kol = 0;
+CONST INT TRNSPCLR = 0xFF00FF, ELA = 140, ELB = 60;
+int x = 150, y = 300, dx = 10, dy = 10, ela = 140, elb = 60, col = 80, mdx = 10, sgndx = 1, sgndy = 1, kol = 0, x2, y2;
 HBITMAP gBM;
 boolean onPict = false, onMove = false, mvx = false, mvy = false;
 
@@ -76,18 +76,25 @@ int rrr = 8;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	RECT clientRect;
+	GetClientRect(hwnd, &clientRect);
+
 	switch (uMsg)
 	{
 	case WM_CLOSE:
+	{
 		if (MessageBox(hwnd, L"Really quit?", L"Super application", MB_OKCANCEL) == IDOK)
 		{
 			DestroyWindow(hwnd);
 		}
 		return 0;
+	}
 
 	case WM_DESTROY:
+	{
 		PostQuitMessage(0);
 		return 0;
+	}
 
 	case WM_PAINT:
 	{
@@ -101,28 +108,34 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		gBM = hBmp;
 		break;
 	}
+
 	case WM_ERASEBKGND:
+	{
 		return 1;
-		break;
+	}
 
 	case WM_MOUSEMOVE:
-		if (mvx || mvy)
-		{
+	{
+		if (onMove)
 			return 0;
-		}
 
-		x = GET_X_LPARAM(lParam) - (ela + 1) / 2;
-		y = GET_Y_LPARAM(lParam) - (elb + 1) / 2;
+		x = GET_X_LPARAM(lParam) - (ela) / 2;
+		y = GET_Y_LPARAM(lParam) - (elb) / 2;
+		x2 = x + ela;
+		y2 = y + elb;
 		if (x < 0) x = 0;
 		if (y < 0) y = 0;
-		mvrght(hwnd);
-		mvdwn(hwnd);
-		mvlft(hwnd);
-		mvup(hwnd);
+		if (x2 > clientRect.right) x = clientRect.right - ela;
+		if (y2 > clientRect.bottom) y = clientRect.bottom - elb;
+		InvalidateRect(hwnd, &clientRect, true);
 		return 0;
+	}
 
 	case WM_MOUSEWHEEL:
 	{
+		if (onMove)
+			return 0;
+
 		int key = GET_KEYSTATE_WPARAM(wParam);
 		if (key == MK_SHIFT)
 		{
@@ -150,6 +163,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 
 	case WM_KEYDOWN:
+	{
+		if (wParam != VK_TAB)
+			if (onMove)
+				return 0;
 
 		switch (wParam)
 		{
@@ -177,8 +194,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				GetObject(gBM, sizeof(bm), &bm);
 				ela = bm.bmWidth;
 				elb = bm.bmHeight;
-				RECT clientRect;
-				GetClientRect(hwnd, &clientRect);
 				InvalidateRect(hwnd, &clientRect, true);
 				mvrght(hwnd);
 				mvdwn(hwnd);
@@ -186,23 +201,27 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			else
 			{
 				onPict = false;
+				ela = ELA;
+				elb = ELB;
 			}
 			break;
 		}
 		break;
 		return 0;
+	}
 
 	case WM_LBUTTONDOWN:
+	{
+		if ((abs(GET_X_LPARAM(lParam) - (x + ela / 2)) > 40) || (abs(GET_Y_LPARAM(lParam) - (y + elb / 2)) > 40))
+			break;
+
 		if (!(mvx || mvy))
 		{
 			mdx = 0;
+			onMove = true;
 			rrr = SetTimer(hwnd, 0, 37, (TIMERPROC)NULL);
 		}
-		else
-		{
-			if ((abs(GET_X_LPARAM(lParam) - (x + ela / 2)) > 40) || (abs(GET_Y_LPARAM(lParam) - (y + elb / 2)) > 40))
-				break;
-		}
+
 		kol += 1;
 		rrr = !mvx * mvy;
 		mvx = true;
@@ -214,18 +233,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			mvx = false;
 			mvy = true;
 		}
-
 		mdx += 1;
 		return 0;
+	}
 
 	case WM_TIMER:
+	{
 		mvPctr(hwnd);
 		return 0;
 	}
+	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-
 
 void mvrght(HWND hwnd)
 {
@@ -308,23 +327,7 @@ void paintWind(HWND hwnd)
 	HDC backDc = CreateCompatibleDC(hdc);
 	HGDIOBJ previousBackBmp = SelectObject(backDc, hbmBack);
 	FillRect(backDc, &clientRect, (HBRUSH)(3));
-	
-	wchar_t text[] = L"0123456789";
-	int c1, c2, c3;
-	wchar_t tc1[] = L"0\0", tc2[] = L"1\0", tc3[] = L"2\0";
-	c1 = kol % 1000 / 100;
-	c2 = kol % 100 / 10;
-	c3 = kol % 10;
-	tc1[0] = text[c1];
-	tc2[0] = text[c2];
-	tc3[0] = text[c3];
-	SetBkColor(backDc, RGB(0x64, 0x95, 0xED));
-	
-	int k = TextOut(backDc, 0, 0, L"caught: ", ARRAYSIZE(L"caught: "));
-	k = TextOut(backDc, 56, 0, tc1, ARRAYSIZE(tc1));
-	k = TextOut(backDc, 64, 0, tc2, ARRAYSIZE(tc2));
-	k = TextOut(backDc, 72, 0, tc3, ARRAYSIZE(tc3));
-	
+
 	if (onPict == false)
 	{
 		HBRUSH hBrush;
@@ -348,6 +351,22 @@ void paintWind(HWND hwnd)
 		SelectObject(pict, previousBmp);//? is it needed in case of the next line?		
 		ReleaseDC(hwnd, pict);
 	}
+
+	wchar_t text[] = L"0123456789";
+	int c1, c2, c3;
+	wchar_t tc1[] = L"0\0", tc2[] = L"1\0", tc3[] = L"2\0";
+	c1 = kol % 1000 / 100;
+	c2 = kol % 100 / 10;
+	c3 = kol % 10;
+	tc1[0] = text[c1];
+	tc2[0] = text[c2];
+	tc3[0] = text[c3];
+	SetBkColor(backDc, RGB(0x64, 0x95, 0xED));
+
+	int k = TextOut(backDc, 0, 0, L"caught: ", ARRAYSIZE(L"caught: "));
+	k = TextOut(backDc, 56, 0, tc1, ARRAYSIZE(tc1));
+	k = TextOut(backDc, 64, 0, tc2, ARRAYSIZE(tc2));
+	k = TextOut(backDc, 72, 0, tc3, ARRAYSIZE(tc3));
 
 	BitBlt(hdc, 0, 0, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top, backDc, 0, 0, SRCCOPY);
 	SelectObject(backDc, previousBackBmp);//?
